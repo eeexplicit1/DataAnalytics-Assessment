@@ -1,41 +1,41 @@
-## Question 1: Identify high-value customers with both funded savings and investment plans
+# Question 1: Identify high-value customers with both funded savings and investment plans(Multiple Products)
+/* Goal: Find users who have at least one funded savings plan and one funded investment plan,
+and order them by total deposits.*/
 
 USE `adashi_staging`;
-WITH funded_savings AS (
-    SELECT
-        owner_id,
-        COUNT(*) AS savings_count,
-        SUM(confirmed_amount)/100 AS total_deposits
-    FROM
-        savings_savingsaccount
-    WHERE
-        confirmed_amount > 0 
-    GROUP BY
-        owner_id
-),
+SELECT 
+    u.id AS owner_id,            -- Customer ID
+    concat(u.first_name, ' ', u.last_name) as name,            -- Customer Name
 
-funded_investments AS (
-    SELECT
-        owner_id,
-        COUNT(*) AS investment_count
-    FROM
-        plans_plan
-    WHERE
-		is_a_fund = 1
-        AND amount > 0 
-    GROUP BY
-        owner_id
-)
+    -- Count of distinct funded regular savings plans
+    COUNT(DISTINCT CASE 
+        WHEN p.is_regular_savings = 1 THEN p.id
+    END) AS savings_count,
 
-SELECT
-    u.id AS owner_id,
-    concat(u.first_name, ' ', u.last_name) AS name,
-    fs.savings_count,
-    fi.investment_count,
-    fs.total_deposits
-FROM
-    users_customuser u
-JOIN funded_savings fs ON u.id = fs.owner_id
-JOIN funded_investments fi ON u.id = fi.owner_id
-ORDER BY
-    fs.total_deposits DESC;
+    -- Count of distinct funded investment plans
+    COUNT(DISTINCT CASE 
+        WHEN p.is_a_fund = 1 THEN p.id
+    END) AS investment_count,
+
+    -- Total confirmed deposits for all plans (in Naira)
+    ROUND(SUM(CASE 
+        WHEN sa.confirmed_amount IS NOT NULL THEN sa.confirmed_amount
+        ELSE 0
+    END) / 100, 2) AS total_deposits
+
+FROM users_customuser u
+
+-- Join to plans to find savings and investment ownership
+JOIN plans_plan p ON u.id = p.owner_id
+
+-- Join to savings_savingsaccount to access confirmed inflow
+JOIN savings_savingsaccount sa ON sa.plan_id = p.id 
+    AND sa.confirmed_amount > 0 -- Only count funded transactions
+
+GROUP BY u.id, u.name
+
+-- Filter: Must have at least one savings and one investment plan
+HAVING savings_count > 0 AND investment_count > 0
+
+-- Order by highest depositors
+ORDER BY total_deposits DESC;
