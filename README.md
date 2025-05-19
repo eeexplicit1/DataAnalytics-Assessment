@@ -60,8 +60,11 @@ This repository contains solutions to a SQL-based data analytics assessment desi
 
 - Ensured handling of partial months and differing activity spans by using average per customer over time.
 - Some columns were misaligned between assumptions and schema (e.g., `is_regular_savings` was actually in `plans_plan`).
-- Ensuring compatibility with MySQL syntax such as `DATEDIFF()` and `TIMESTAMPDIFF()`.
+- Creating queries that aggregated large data volumes across transactions while remaining efficient and readable was a challenge. 
+  Subqueries and CTEs (where applicable) were optimized to reduce processing time and memory use in assessment_Q2.
 - Avoiding double-counting in joins, especially when multiple tables reference the same keys.
+- Calculating account tenure and periods of inactivity required precise handling of dates. Ensuring compatibility with NOW() and using 
+  functions like TIMESTAMPDIFF() accurately in MySQL was critical.
 - All amounts were in **kobo**, requiring conversion to **naira** where necessary for readability.
 
 ---
